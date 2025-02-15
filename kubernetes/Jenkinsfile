@@ -8,6 +8,12 @@ pipeline {
     }
 
     stages {
+        stage('Clean Workspace') {
+            steps {
+                cleanWs()
+            }
+        }
+
         stage('Checkout') {
             steps {
                 echo 'Checking out code from GitHub...'
@@ -21,10 +27,15 @@ pipeline {
                 sh '''
                     if ! command -v mvn &> /dev/null; then
                         echo "Maven not found, installing Maven..."
-                        wget https://downloads.apache.org/maven/maven-3/3.8.4/binaries/apache-maven-3.8.4-bin.tar.gz
-                        tar -xzvf apache-maven-3.8.4-bin.tar.gz
-                        mv apache-maven-3.8.4 /opt/maven
-                        export PATH=$PATH:/opt/maven/bin
+                        wget https://archive.apache.org/dist/maven/maven-3/3.9.6/binaries/apache-maven-3.9.6-bin.tar.gz
+                        tar -xzvf apache-maven-3.9.6-bin.tar.gz
+                        if [ -d "/var/lib/jenkins/.maven/apache-maven-3.9.6" ]; then
+                            echo "Removing existing Maven directory..."
+                            rm -rf /var/lib/jenkins/.maven/apache-maven-3.9.6
+                        fi
+                        mkdir -p /var/lib/jenkins/.maven
+                        mv apache-maven-3.9.6 /var/lib/jenkins/.maven
+                        export PATH=$PATH:/var/lib/jenkins/.maven/apache-maven-3.9.6/bin
                         echo "Maven installed successfully."
                     else
                         echo "Maven already installed."
@@ -37,8 +48,9 @@ pipeline {
             steps {
                 echo 'Building the Pong Game...'
                 script {
-                    // Use Maven command to build the project
-                    sh 'mvn clean package'
+                    sh 'export PATH=$PATH:/var/lib/jenkins/.maven/apache-maven-3.9.6/bin && mvn clean package'
+                    sh 'ls -la target/'
+                    sh 'ls -la'
                 }
             }
         }
@@ -46,7 +58,13 @@ pipeline {
         stage('Docker Build') {
             steps {
                 echo 'Building Docker Image...'
-                sh "docker build -t pingpong:latest ."
+                script {
+                    sh '''
+                    JAR_FILE=$(ls target/pong-game-1.0-SNAPSHOT.jar)
+                    echo "Found JAR file: $JAR_FILE"
+                    docker build --build-arg JAR_FILE=$JAR_FILE -t pingpong:latest .
+                    '''
+                }
             }
         }
 
@@ -63,10 +81,31 @@ pipeline {
             }
         }
 
+        stage('Setup Kubernetes Credentials') {
+            steps {
+                echo 'Setting up AWS EKS kubectl authentication...'
+                withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
+                    sh 'aws eks --region ${AWS_REGION} update-kubeconfig --name EKS-game'
+                }
+            }
+        }
+        stage('Configure AWS CLI') {
+    steps {
+        echo 'Configuring AWS CLI...'
+        withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
+            sh '''
+                aws configure set aws_access_key_id ${AWS_ACCESS_KEY_ID}
+                aws configure set aws_secret_access_key ${AWS_SECRET_ACCESS_KEY}
+                aws configure set region ${AWS_REGION}
+            '''
+        }
+    }
+}
+
         stage('Deploy to Kubernetes') {
             steps {
                 echo 'Deploying to Kubernetes...'
-                sh "kubectl apply -f kubernetes/deployment.yaml"
+                sh 'kubectl apply -f kubernetes/deployment.yaml'
             }
         }
     }
