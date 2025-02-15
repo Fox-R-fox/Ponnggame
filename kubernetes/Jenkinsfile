@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         AWS_ACCOUNT_ID = '654654291247'
-        AWS_REGION = 'ap-south-1'
+        AWS_REGION = 'us-east-1'
         ECR_REPO = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/pingpong"
     }
 
@@ -11,14 +11,35 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo 'Checking out code from GitHub...'
-                git branch: 'main', url: 'https://github.com/your-username/your-repo.git'
+                git branch: 'master', url: 'https://github.com/Fox-R-fox/Ponnggame.git'
+            }
+        }
+
+        stage('Install Maven') {
+            steps {
+                echo 'Installing Maven...'
+                sh '''
+                    if ! command -v mvn &> /dev/null; then
+                        echo "Maven not found, installing Maven..."
+                        wget https://downloads.apache.org/maven/maven-3/3.8.4/binaries/apache-maven-3.8.4-bin.tar.gz
+                        tar -xzvf apache-maven-3.8.4-bin.tar.gz
+                        mv apache-maven-3.8.4 /opt/maven
+                        export PATH=$PATH:/opt/maven/bin
+                        echo "Maven installed successfully."
+                    else
+                        echo "Maven already installed."
+                    fi
+                '''
             }
         }
 
         stage('Build') {
             steps {
                 echo 'Building the Pong Game...'
-                sh 'mvn clean package'
+                script {
+                    // Use Maven command to build the project
+                    sh 'mvn clean package'
+                }
             }
         }
 
