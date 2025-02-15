@@ -1,32 +1,12 @@
-FROM openjdk:17-slim
+FROM bellsoft/liberica-full:17
 
 WORKDIR /app
 
-# Install JavaFX dependencies and Xvfb
-RUN apt-get update && apt-get install -y \
-    libgl1 \
-    libgtk-3-0 \
-    libxtst6 \
-    libxrender1 \
-    libfontconfig1 \
-    libxi6 \
-    libglu1-mesa \
-    xvfb \
-    && rm -rf /var/lib/apt/lists/*
-
-# Download and extract JavaFX SDK
-RUN apt-get update && apt-get install -y wget unzip \
-    && wget https://download2.gluonhq.com/openjfx/17/openjfx-17_linux-x64_bin-sdk.zip \
-    && unzip openjfx-17_linux-x64_bin-sdk.zip -d /opt \
-    && rm openjfx-17_linux-x64_bin-sdk.zip \
-    && apt-get remove -y wget unzip \
-    && apt-get autoremove -y
-
-# Set JavaFX module path
-ENV PATH_TO_FX=/opt/javafx-sdk-17/lib
+# Install Xvfb for a virtual display
+RUN apt-get update && apt-get install -y xvfb
 
 # Copy the JAR file
 COPY target/pong-game-1.0-SNAPSHOT.jar /app/pong-game.jar
 
-# Run the application with Xvfb
-CMD xvfb-run -a java --module-path $PATH_TO_FX --add-modules javafx.controls,javafx.fxml -jar /app/pong-game.jar
+# Start a virtual display & run the application
+CMD ["sh", "-c", "Xvfb :99 -screen 0 1024x768x24 & java -Djava.awt.headless=false -Dprism.verbose=true -Dglass.platform=Monocle -Dmonocle.platform=Headless -jar /app/pong-game.jar"]
