@@ -1,8 +1,8 @@
-FROM openjdk:17
+FROM openjdk:17-slim
 
 WORKDIR /app
 
-# Install JavaFX
+# Install JavaFX dependencies
 RUN apt-get update && apt-get install -y openjfx libopenjfx-java
 
 # Copy the JAR file
