@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: pingpong
-          image: 654654291247.dkr.ecr.ap-south-1.amazonaws.com/pingpong:latest
+          image: 654654291247.dkr.ecr.us-east-1.amazonaws.com/pingpong:latest
           ports:
             - containerPort: 8080
 ---
