@@ -1,0 +1,52 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_ACCOUNT_ID = '<your-aws-account-id>'
+        AWS_REGION = 'us-east-1'
+        ECR_REPO = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/pong-game"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo 'Checking out code from GitHub...'
+                git branch: 'main', url: 'https://github.com/your-username/your-repo.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo 'Building the Pong Game...'
+                sh 'mvn clean package'
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                echo 'Building Docker Image...'
+                sh "docker build -t pong-game:latest ."
+            }
+        }
+
+        stage('Push to ECR') {
+            steps {
+                echo 'Pushing Docker Image to AWS ECR...'
+                withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
+                    sh """
+                    aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REPO}
+                    docker tag pong-game:latest ${ECR_REPO}:latest
+                    docker push ${ECR_REPO}:latest
+                    """
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                echo 'Deploying to Kubernetes...'
+                sh "kubectl apply -f kubernetes/deployment.yaml"
+            }
+        }
+    }
+}

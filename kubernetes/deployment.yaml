@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pong-game
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: pong-game
+  template:
+    metadata:
+      labels:
+        app: pong-game
+    spec:
+      containers:
+        - name: pong-game
+          image: <your-aws-account-id>.dkr.ecr.us-east-1.amazonaws.com/pong-game:latest
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pong-game-service
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 80
+      targetPort: 8080
+  selector:
+    app: pong-game
