@@ -1,12 +1,11 @@
-FROM openjdk:17-jdk-slim
+# Use a JDK image that includes JavaFX
+FROM bellsoft/liberica-openjfx:17
 
+# Set the working directory inside the container
 WORKDIR /app
 
-# Copy the JAR file created by Maven
+# Copy the built JAR file into the container
 COPY target/pong-game-1.0-SNAPSHOT.jar /app/pong-game.jar
 
-# Install JavaFX dependencies
-RUN apt-get update && apt-get install -y libopenjfx-java
-
-# Run the game
+# Run the application with JavaFX modules
 CMD ["java", "-jar", "pong-game.jar"]
