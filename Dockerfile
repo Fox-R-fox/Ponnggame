@@ -1,9 +1,12 @@
-FROM azul/zulu-openjdk:17
+FROM openjdk:17
 
 WORKDIR /app
 
-# Copy the built JAR file into the container
+# Install JavaFX
+RUN apt-get update && apt-get install -y openjfx libopenjfx-java
+
+# Copy the JAR file
 COPY target/pong-game-1.0-SNAPSHOT.jar /app/pong-game.jar
 
 # Run the application
-CMD ["java", "-jar", "pong-game.jar"]
+CMD ["java", "-jar", "/app/pong-game.jar"]
